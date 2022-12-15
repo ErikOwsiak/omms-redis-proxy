@@ -13,6 +13,7 @@ DEV_NAME = "/dev/ttyUSB0"
 REDIS_HOST = "10.0.0.122"
 REDIS_PORT = 6379
 # -- fixed --
+DEV_SPEED = 19200
 REDIS_PWD = "Q@@bcd!234##!"
 REDIS_PUB_CHANNEL = "CK_PZEM_READER_ROOF"
 
@@ -21,7 +22,7 @@ class redisProxy(object):
 
    def __init__(self, dev):
       self.dev = dev
-      self.ser: serial.Serial = serial.Serial(port=self.dev)
+      self.ser: serial.Serial = serial.Serial(port=self.dev, baudrate=DEV_SPEED)
       self.red: redis.Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PWD)
 
    def run(self):
