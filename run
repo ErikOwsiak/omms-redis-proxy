@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+from core.sysutils import sysUtils
+
+
+def main():
+   sysut: sysUtils = sysUtils()
+   sysut.print_ports()
+   sysut.scan_system()
+
+
+# -- entry point --
+if __name__ == "__main__":
+   print("\n -- [ pzem_reader proxy ] --\n")
+   main()
