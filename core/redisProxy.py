@@ -6,9 +6,9 @@ from core.sysutils import sysUtils
 
 
 # -- dev --
-DEV_NAME = "/dev/pts/11"
-REDIS_HOST = "localhost"
-REDIS_PORT = 16379
+# DEV_NAME = "/dev/pts/11"
+# REDIS_HOST = "localhost"
+# REDIS_PORT = 16379
 # -- prod --
 # DEV_NAME = "/dev/ttyUSB0"
 # REDIS_HOST = "10.0.0.122"
@@ -82,9 +82,9 @@ class redisProxy(object):
                pzem_ss = arr[1].split(":")[1]
                arr.insert(1, f"DTSUTC:{sysUtils.dts_utc()}")
                key = f"/{GEOLOC}/{BUILDING}/{HOST}/{CHANNEL}/{pzem_ss}"
-               rval = self.red.set(key, "|".join(arr))
-               # self.red.expire(key, (hr1secs * 8))
-               print(rval)
+               buff = "|".join(arr)
+               rval = self.red.set(key, buff)
+               print(f"rval: {rval} ~ {buff}")
          time.sleep(0.48)
          # -- -- -- -- -- -- -- -- -- -- -- --
       except Exception as e:
