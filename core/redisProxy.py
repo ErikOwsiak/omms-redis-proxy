@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import setproctitle
 import time, redis, serial
 from core.sysutils import sysUtils
 
@@ -21,6 +22,7 @@ GEOLOC: str = ""
 BUILDING: str = ""
 HOST: str = ""
 CHANNEL: str = "PZEM_READER"
+PROC_NAME: str = "PzemRedProxy"
 
 
 try:
@@ -37,13 +39,14 @@ except Exception as e:
 
 class redisProxy(object):
 
-   def __init__(self, dev):
+   def __init__(self, dev, red_host, red_port, red_pwd):
       self.dev = dev
       self.ser: serial.Serial = serial.Serial(port=self.dev, baudrate=DEV_SPEED)
-      self.red: redis.Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PWD)
+      self.red: redis.Redis = redis.Redis(host=red_host, port=red_port, password=red_pwd)
       self.red.select(REDIS_DB_READS)
 
    def run(self):
+      setproctitle.setproctitle(PROC_NAME)
       while True:
          self.__run_loop()
 
@@ -82,7 +85,7 @@ class redisProxy(object):
                rval = self.red.set(key, "|".join(arr))
                # self.red.expire(key, (hr1secs * 8))
                print(rval)
-         time.sleep(0.5)
+         time.sleep(0.48)
          # -- -- -- -- -- -- -- -- -- -- -- --
       except Exception as e:
          time.sleep(2.0)
@@ -90,6 +93,6 @@ class redisProxy(object):
 
 
 # -- -- test -- --
-if __name__ == "__main__":
-    obj: redisProxy = redisProxy(DEV_NAME)
-    obj.run()
+# if __name__ == "__main__":
+#     obj: redisProxy = redisProxy(DEV_NAME)
+#     obj.run()
