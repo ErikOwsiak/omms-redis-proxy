@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import time
-import redis
-import serial
+import time, redis, serial
+from core.sysutils import sysUtils
+
 
 # -- dev --
 DEV_NAME = "/dev/pts/11"
@@ -16,6 +16,23 @@ REDIS_PORT = 16379
 DEV_SPEED = 19200
 REDIS_PWD = "Q@@bcd!234##!"
 REDIS_PUB_CHANNEL = "CK_PZEM_READER_ROOF"
+REDIS_DB_READS = 2
+GEOLOC: str = ""
+BUILDING: str = ""
+HOST: str = ""
+CHANNEL: str = "PZEM_READER"
+
+
+try:
+   with open("/etc/iotech/geoloc") as f:
+      GEOLOC = f.read().strip()
+   with open("/etc/iotech/building") as f:
+      BUILDING = f.read().strip()
+   with open("/etc/hostname") as f:
+      HOST = f.read().strip()
+except Exception as e:
+   print(e)
+   exit(1)
 
 
 class redisProxy(object):
@@ -24,6 +41,7 @@ class redisProxy(object):
       self.dev = dev
       self.ser: serial.Serial = serial.Serial(port=self.dev, baudrate=DEV_SPEED)
       self.red: redis.Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PWD)
+      self.red.select(REDIS_DB_READS)
 
    def run(self):
       while True:
@@ -45,6 +63,7 @@ class redisProxy(object):
 
    def __run_loop(self):
       try:
+         # hr1secs = 3600
          # -- -- -- -- -- -- -- -- -- -- -- --
          buff = None
          if self.ser.inWaiting():
@@ -54,10 +73,14 @@ class redisProxy(object):
             print(buff)
             # -- publish all --
             self.red.publish(REDIS_PUB_CHANNEL, buff)
+            # -- #RPT|PZEM:SS_1|F:50.00|V:229.90|A:0.86|W:192.80|kWh:5.94! --
             if buff.startswith("#RPT|PZEM:"):
-               dct: {} = {"key", "xxx"}
-               self.red.select()
-               rval = self.red.hset("some_hash", dct)
+               arr: [] = buff.split("|")
+               pzem_ss = arr[1].split(":")[1]
+               arr.insert(1, f"DTSUTC:{sysUtils.dts_utc()}")
+               key = f"/{GEOLOC}/{BUILDING}/{HOST}/{CHANNEL}/{pzem_ss}"
+               rval = self.red.set(key, "|".join(arr))
+               # self.red.expire(key, (hr1secs * 8))
                print(rval)
          time.sleep(0.5)
          # -- -- -- -- -- -- -- -- -- -- -- --

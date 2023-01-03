@@ -1,3 +1,4 @@
+import datetime
 import os, time, re
 import serial, typing as t
 from serial.tools import list_ports as ser_tools
@@ -14,6 +15,12 @@ class sysUtils(object):
    def __init__(self):
       self.ports: t.List[serial.Serial] = []
       self.found: {} = {}
+
+   @staticmethod
+   def dts_utc():
+      d = datetime.datetime.utcnow()
+      return f"{d.year}-{d.month:02d}-{d.day:02d}T" \
+         f"{d.hour:02d}:{d.minute:02d}:{d.second:02d}"
 
    def load_serial_ports(self):
       self.ports = ser_tools.comports()
