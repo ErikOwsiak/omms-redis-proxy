@@ -79,6 +79,7 @@ class redisProxy(object):
             self.red.publish(REDIS_PUB_CHANNEL, buff)
             # -- #RPT|PZEM:SS_1|F:50.00|V:229.90|A:0.86|W:192.80|kWh:5.94! --
             if buff.startswith("#RPT|PZEM:"):
+               self.red.select(REDIS_DB_READS)
                arr: [] = buff.split("|")
                pzem_ss = arr[1].split(":")[1]
                arr.insert(1, f"DTSUTC:{sysUtils.dts_utc()}")
