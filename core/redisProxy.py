@@ -47,6 +47,7 @@ class redisProxy(object):
 
    def run(self):
       setproctitle.setproctitle(PROC_NAME)
+      self.red.select(REDIS_DB_READS)
       while True:
          self.__run_loop()
 
