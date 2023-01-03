@@ -5,13 +5,13 @@ import redis
 import serial
 
 # -- dev --
-# DEV_NAME = "/dev/pts/7"
-# REDIS_HOST = "localhost"
-# REDIS_PORT = 16379
+DEV_NAME = "/dev/pts/11"
+REDIS_HOST = "localhost"
+REDIS_PORT = 16379
 # -- prod --
-DEV_NAME = "/dev/ttyUSB0"
-REDIS_HOST = "10.0.0.122"
-REDIS_PORT = 6379
+# DEV_NAME = "/dev/ttyUSB0"
+# REDIS_HOST = "10.0.0.122"
+# REDIS_PORT = 6379
 # -- fixed --
 DEV_SPEED = 19200
 REDIS_PWD = "Q@@bcd!234##!"
@@ -27,13 +27,7 @@ class redisProxy(object):
 
    def run(self):
       while True:
-         buff = None
-         if self.ser.inWaiting():
-            buff = self.__read_string()
-         if buff is not None:
-            print(buff)
-            self.red.publish(REDIS_PUB_CHANNEL, buff)
-         time.sleep(0.480)
+         self.__run_loop()
 
    def __read_string(self) -> str:
       barr: bytearray = bytearray()
@@ -48,6 +42,28 @@ class redisProxy(object):
             break
       # -- --
       return barr.decode("utf-8")
+
+   def __run_loop(self):
+      try:
+         # -- -- -- -- -- -- -- -- -- -- -- --
+         buff = None
+         if self.ser.inWaiting():
+            buff = self.__read_string()
+         # -- -- -- -- -- -- -- -- -- -- -- --
+         if buff is not None:
+            print(buff)
+            # -- publish all --
+            self.red.publish(REDIS_PUB_CHANNEL, buff)
+            if buff.startswith("#RPT|PZEM:"):
+               dct: {} = {"key", "xxx"}
+               self.red.select()
+               rval = self.red.hset("some_hash", dct)
+               print(rval)
+         time.sleep(0.5)
+         # -- -- -- -- -- -- -- -- -- -- -- --
+      except Exception as e:
+         time.sleep(2.0)
+         print(e)
 
 
 # -- -- test -- --
