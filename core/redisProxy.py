@@ -16,7 +16,8 @@ from core.sysutils import sysUtils
 # -- fixed --
 DEV_SPEED = 19200
 REDIS_PWD = "Q@@bcd!234##!"
-REDIS_PUB_CHANNEL = "CK_PZEM_READER_ROOF"
+DIAGNOSTICS_DEBUG = "DIAGNOSTICS_DEBUG"
+REDIS_PUB_CHANNEL_READS = "CK_PZEM_READER_ROOF_READS"
 REDIS_DB_READS = 2
 GEOLOC: str = ""
 BUILDING: str = ""
@@ -75,17 +76,19 @@ class redisProxy(object):
          # -- -- -- -- -- -- -- -- -- -- -- --
          if buff is not None:
             print(buff)
-            # -- publish all --
-            self.red.publish(REDIS_PUB_CHANNEL, buff)
+            self.red.publish(DIAGNOSTICS_DEBUG, buff)
             # -- #RPT|PZEM:SS_1|F:50.00|V:229.90|A:0.86|W:192.80|kWh:5.94! --
-            if buff.startswith("#RPT|PZEM:"):
+            if buff.startswith("#RPT|PZEM:SS_"):
                self.red.select(REDIS_DB_READS)
                arr: [] = buff.split("|")
                pzem_ss = arr[1].split(":")[1]
                arr.insert(1, f"DTSUTC:{sysUtils.dts_utc()}")
                key = f"/{GEOLOC}/{BUILDING}/{HOST}/{CHANNEL}/{pzem_ss}"
                buff = "|".join(arr)
+               # -- -- publish & set -- --
+               self.red.publish(REDIS_PUB_CHANNEL_READS, buff)
                rval = self.red.set(key, buff)
+               # -- -- -- --
                print(f"rval: {rval} ~ {buff}")
          time.sleep(0.48)
          # -- -- -- -- -- -- -- -- -- -- -- --
