@@ -1,42 +1,9 @@
 #!/usr/bin/env python3
 
-import setproctitle
 import configparser as cp
 import time, serial
 from core.utils import sysUtils
 from core.redisProxy import redisProxy
-
-
-# -- dev --
-# DEV_NAME = "/dev/pts/11"
-# REDIS_HOST = "localhost"
-# REDIS_PORT = 16379
-# -- prod --
-# DEV_NAME = "/dev/ttyUSB0"
-# REDIS_HOST = "10.0.0.122"
-# REDIS_PORT = 6379
-# -- fixed --
-# DEV_SPEED = 19200
-# REDIS_PWD = "Q@@bcd!234##!"
-# DIAGNOSTICS_DEBUG = "DIAGNOSTICS_DEBUG"
-# REDIS_PUB_CHANNEL_READS = "CK_PZEM_READER_ROOF_READS"
-# REDIS_DB_READS = 2
-# GEOLOC: str = ""
-# BUILDING: str = ""
-# HOST: str = ""
-# CHANNEL: str = "PZEM_READER"
-# PROC_NAME: str = "PzemRedProxy"
-
-# try:
-#    with open("/etc/iotech/geoloc") as f:
-#       GEOLOC = f.read().strip()
-#    with open("/etc/iotech/building") as f:
-#       BUILDING = f.read().strip()
-#    with open("/etc/hostname") as f:
-#       HOST = f.read().strip()
-# except Exception as e:
-#    print(e)
-#    exit(1)
 
 
 class serialReader(object):
@@ -50,7 +17,6 @@ class serialReader(object):
       self.channel = str(self.cp["SYSPATH"]["CHANNEL"])
 
    def run(self):
-      setproctitle.setproctitle("SER_RED_PROXY")
       while True:
          self.__run_loop()
 
@@ -85,21 +51,15 @@ class serialReader(object):
                pzem_ss = arr[1].split(":")[1]
                arr.insert(1, f"DTSUTC:{sysUtils.dts_utc()}")
                syspath: str = sysUtils.syspath(self.channel, pzem_ss)
-               # key = f"/{GEOLOC}/{BUILDING}/{HOST}/{CHANNEL}/{pzem_ss}"
                arr.insert(2, f"PATH:{syspath}")
                buff = "|".join(arr)
                # -- -- publish & set -- --
                self.red_proxy.pub_read(buff)
                self.red_proxy.save_read(syspath, buff)
+               self.red_proxy.save_heartbeat(syspath, buff)
                # -- -- -- --
          time.sleep(0.48)
          # -- -- -- -- -- -- -- -- -- -- -- --
       except Exception as e:
          time.sleep(2.0)
          print(e)
-
-
-# -- -- test -- --
-# if __name__ == "__main__":
-#     obj: serialReader = serialReader(DEV_NAME)
-#     obj.run()
