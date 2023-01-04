@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 
+import configparser
 from core.redisProxy import redisProxy
+from core.serialReader import serialReader
 from core.classAsProcRunner import classAsProcRunner
 
 
-# -- dev --
-DEV_NAME = "/dev/pts/11"
-REDIS_HOST = "localhost"
-REDIS_PORT = 16379
-# -- prod --
-# DEV_NAME = "/dev/ttyUSB0"
-# REDIS_HOST = "10.0.0.122"
-# REDIS_PORT = 6379
-# -- global --
-REDIS_PWD = "Q@@bcd!234##!"
+conf: configparser.ConfigParser = configparser.ConfigParser()
+conf.read("conf/conf.ini")
 
+redProxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
+# redProxy: redisProxy = redisProxy(conf)
 
-proxy: redisProxy = redisProxy(DEV_NAME, REDIS_HOST, REDIS_PORT, REDIS_PWD)
-runner: classAsProcRunner = classAsProcRunner("redproxy", proxy, "run")
+proxy: serialReader = serialReader(conf, redProxy)
+runner: classAsProcRunner = classAsProcRunner("serialReader", proxy, "run")
 runner.init()
 runner.run_main_loop()

@@ -13,6 +13,10 @@ RESP_TIMEOUT = 2.0
 
 class sysUtils(object):
 
+   GEOLOC = ""
+   BUILDING = ""
+   HOST = ""
+
    def __init__(self):
       self.ports: t.List[serial.Serial] = []
       self.found: {} = {}
@@ -20,8 +24,26 @@ class sysUtils(object):
    @staticmethod
    def dts_utc():
       d = datetime.datetime.utcnow()
-      return f"{d.year}-{d.month:02d}-{d.day:02d}T" \
-         f"{d.hour:02d}:{d.minute:02d}:{d.second:02d}"
+      return f"{d.year}{d.month:02d}{d.day:02d}T" \
+         f"{d.hour:02d}{d.minute:02d}{d.second:02d}"
+
+   @staticmethod
+   def syspath(channel: str, endpoint: str):
+      try:
+         if sysUtils.GEOLOC == "":
+            with open("/etc/iotech/geoloc") as f:
+               sysUtils.GEOLOC = f.read().strip()
+         if sysUtils.BUILDING == "":
+            with open("/etc/iotech/building") as f:
+               sysUtils.BUILDING = f.read().strip()
+         if sysUtils.HOST == "":
+            with open("/etc/hostname") as f:
+               sysUtils.HOST = f.read().strip()
+         # -- -- -- --
+         return f"/{sysUtils.GEOLOC}/{sysUtils.BUILDING}/{sysUtils.HOST}/{channel}/{endpoint}"
+      except Exception as e:
+         print(e)
+         exit(1)
 
    def load_serial_ports(self):
       self.ports = ser_tools.comports()

@@ -1,104 +1,82 @@
 #!/usr/bin/env python3
 
-import setproctitle
-import time, redis, serial
-from core.sysutils import sysUtils
-
-
-# -- dev --
-# DEV_NAME = "/dev/pts/11"
-# REDIS_HOST = "localhost"
-# REDIS_PORT = 16379
-# -- prod --
-# DEV_NAME = "/dev/ttyUSB0"
-# REDIS_HOST = "10.0.0.122"
-# REDIS_PORT = 6379
-# -- fixed --
-DEV_SPEED = 19200
-REDIS_PWD = "Q@@bcd!234##!"
-DIAGNOSTICS_DEBUG = "DIAGNOSTICS_DEBUG"
-REDIS_PUB_CHANNEL_READS = "CK_PZEM_READER_ROOF_READS"
-REDIS_DB_READS = 2
-GEOLOC: str = ""
-BUILDING: str = ""
-HOST: str = ""
-CHANNEL: str = "PZEM_READER"
-PROC_NAME: str = "PzemRedProxy"
-
-
+import hashlib
+import redis, configparser as cp
 try:
-   with open("/etc/iotech/geoloc") as f:
-      GEOLOC = f.read().strip()
-   with open("/etc/iotech/building") as f:
-      BUILDING = f.read().strip()
-   with open("/etc/hostname") as f:
-      HOST = f.read().strip()
-except Exception as e:
-   print(e)
-   exit(1)
+   from core.utils import sysUtils as utils
+   from core.logutils import logUtils
+except:
+   # -- in package testing --
+   from utils import sysUtils as utils
+   from logutils import logUtils
 
 
 class redisProxy(object):
 
-   def __init__(self, dev, red_host, red_port, red_pwd):
-      self.dev = dev
-      self.ser: serial.Serial = serial.Serial(port=self.dev, baudrate=DEV_SPEED)
-      self.red: redis.Redis = redis.Redis(host=red_host, port=red_port, password=red_pwd)
-      self.red.select(REDIS_DB_READS)
+   def __init__(self, conf: cp.ConfigParser, CONN_SEC: str = "PROD_REDIS_CONN"):
+      self.cp = conf
+      self.CONN_SEC = CONN_SEC
+      self.host = self.cp[self.CONN_SEC]["HOST"]
+      self.port: int = int(self.cp[self.CONN_SEC]["PORT"])
+      self.pwd = self.cp["REDIS"]["PWD"]
+      self.red: redis.Redis = redis.Redis(host=self.host, port=self.port, password=self.pwd)
+      self.host_ping: bool = self.__ping_host()
 
-   def run(self):
-      setproctitle.setproctitle(PROC_NAME)
-      self.red.select(REDIS_DB_READS)
-      while True:
-         self.__run_loop()
-
-   def __read_string(self) -> str:
-      barr: bytearray = bytearray()
-      while True:
-         __char = self.ser.read()
-         # -- start char --
-         if chr(__char[0]) == '#':
-            barr.clear()
-         barr.extend(__char)
-         # -- test end --
-         if chr(__char[0]) == '!':
-            break
-      # -- --
-      return barr.decode("utf-8")
-
-   def __run_loop(self):
+   def save_read(self, path: str, buff: str):
       try:
-         # hr1secs = 3600
-         # -- -- -- -- -- -- -- -- -- -- -- --
-         buff = None
-         if self.ser.inWaiting():
-            buff = self.__read_string()
-         # -- -- -- -- -- -- -- -- -- -- -- --
-         if buff is not None:
-            print(buff)
-            self.red.publish(DIAGNOSTICS_DEBUG, buff)
-            # -- #RPT|PZEM:SS_1|F:50.00|V:229.90|A:0.86|W:192.80|kWh:5.94! --
-            if buff.startswith("#RPT|PZEM:SS_"):
-               self.red.select(REDIS_DB_READS)
-               arr: [] = buff.split("|")
-               pzem_ss = arr[1].split(":")[1]
-               arr.insert(1, f"DTSUTC:{sysUtils.dts_utc()}")
-               key = f"/{GEOLOC}/{BUILDING}/{HOST}/{CHANNEL}/{pzem_ss}"
-               arr.insert(2, f"PATH:{key}")
-               buff = "|".join(arr)
-               # -- -- publish & set -- --
-               self.red.publish(REDIS_PUB_CHANNEL_READS, buff)
-               rval = self.red.set(key, buff)
-               # -- -- -- --
-               print(f"rval: {rval} ~ {buff}")
-         time.sleep(0.48)
-         # -- -- -- -- -- -- -- -- -- -- -- --
+         read_db_idx = int(self.cp["REDIS"]["DB_IDX_READS"])
+         self.red.select(read_db_idx)
+         md5 = hashlib.md5(bytearray(buff.encode("utf-8")))
+         md5str = f"0x{md5.hexdigest().upper()}"
+         last_msg_dtsutc = utils.dts_utc()
+         _dict = {"dts_utc": last_msg_dtsutc, "msg_md5": md5str, "msg": buff}
+         rv = self.red.delete(path)
+         print(f"rv: {rv}")
+         rv = self.red.hset(path, mapping=_dict)
+         print(f"rv: {rv}")
       except Exception as e:
-         time.sleep(2.0)
+         logUtils.log_exp(e)
+
+   def pub_diag_debug(self, buff: str):
+      channel: str = self.cp["REDIS"]["PUB_DIAG_DEBUG_CHANNEL"]
+      rv = self.red.publish(channel, buff)
+      print(f"rv: {rv}")
+
+   def pub_read(self, buff: str):
+      channel: str = self.cp["REDIS"]["PUB_READS_CHANNEL"]
+      rv = self.red.publish(channel, buff)
+      print(f"rv: {rv}")
+
+   def save_heartbeat(self, path: str, buff: str):
+      try:
+         heartbeat_db_idx: int = int(self.cp["REDIS"]["DB_IDX_HEARTBEATS"])
+         heartbeat_ttl: int = int(self.cp["REDIS"]["HEARTBEAT_TTL"])
+         self.red.select(heartbeat_db_idx)
+         md5 = hashlib.md5(bytearray(buff.encode("utf-8")))
+         md5str = f"0x{md5.hexdigest().upper()}"
+         last_msg_dtsutc = utils.dts_utc()
+         _dict = {"last_msg_dts_utc": last_msg_dtsutc, "last_msg_md5": md5str}
+         rv = self.red.hset(path, mapping=_dict)
+         if heartbeat_ttl not in [None, -1]:
+            self.red.expire(path, heartbeat_ttl)
+         print(f"rv: {rv}")
+      except Exception as e:
+         logUtils.log_exp(e)
+
+   def __ping_host(self) -> bool:
+      try:
+         return self.red.ping()
+      except Exception as e:
          print(e)
+         return False
 
 
 # -- -- test -- --
-# if __name__ == "__main__":
-#     obj: redisProxy = redisProxy(DEV_NAME)
-#     obj.run()
+if __name__ == "__main__":
+    _cp: cp.ConfigParser = cp.ConfigParser()
+    _cp.read("../conf/conf.ini")
+    rp: redisProxy = redisProxy(_cp, CONN_SEC="DEV_REDIS_CONN")
+    rp.pub_diag_debug("hello")
+    rp.pub_read("xxxxxxxxxxxxxxxxxxxxxx")
+    rp.save_read("xxxx", "asdfasdfasdfasdfasfdasfdasfdf")
+    rp.save_heartbeat("xxxxxx", "asdfasdfasfasfasfassafasfasfasfasdf")
