@@ -1,5 +1,5 @@
 
-import time
+import time, setproctitle
 import multiprocessing as mp
 
 
@@ -18,6 +18,7 @@ class classAsProcRunner(object):
          raise Exception(f"MethodNotFound: {self.method2run}")
 
    def run_main_loop(self):
+      setproctitle.setproctitle(self.procname)
       while True:
          try:
             if self.proc is None:
