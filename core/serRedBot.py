@@ -23,7 +23,7 @@ class serRedBot(th.Thread):
       self.last_msg_dts_utc = ""
 
    def run(self):
-      _dict = {"dts_utc": sysUtils.dts_utc()
+      _dict = {"boot_dts_utc": sysUtils.dts_utc()
          , "dev": self.dev, "lanIP": sysUtils.lan_ip()
          , "hostname": sysUtils.HOST}
       self.red_proxy.update_diag_tag(self.diag_tag, mapdct=_dict)
