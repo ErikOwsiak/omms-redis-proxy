@@ -1,13 +1,14 @@
-
+import gc
 import time, setproctitle
 import multiprocessing as mp
 
 
 class classAsProcRunner(object):
 
-   def __init__(self, procname: str, obj: object, method2run: str):
+   def __init__(self, procname: str, obj: object, objname: str, method2run: str):
       self.procname = procname
       self.obj = obj
+      self.objname = objname
       self.method2run = method2run
       self.proc = None
       self._target = None
@@ -22,10 +23,19 @@ class classAsProcRunner(object):
       while True:
          try:
             if self.proc is None:
-               self.proc: mp.Process = mp.Process(target=self._target, name=self.procname)
+               self.proc: mp.Process = mp.Process(target=self._target, name=self.objname)
             if not self.proc.is_alive():
                if self.proc.exitcode:
-                  self.proc: mp.Process = mp.Process(target=self._target, name=self.procname)
+                  try:
+                     self.proc.kill()
+                     self.proc.terminate()
+                     self.proc = None
+                     gc.collect()
+                  finally:
+                     time.sleep(30.0)
+                  # -- re do new proc --
+                  self.proc: mp.Process = mp.Process(target=self._target, name=self.objname)
+               # -- start proc --
                self.proc.start()
             else:
                pass

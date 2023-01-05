@@ -8,7 +8,8 @@ from core.redisProxy import redisProxy
 
 class serialReader(object):
 
-   def __init__(self, _cp: cp.ConfigParser, red: redisProxy):
+   def __init__(self, procname: str, _cp: cp.ConfigParser, red: redisProxy):
+      self.procname = procname
       self.cp = _cp
       self.dev: str = str(self.cp["SERIAL"]["DEV"])
       self.baudrate: int = int(self.cp["SERIAL"]["BAUDRATE"])

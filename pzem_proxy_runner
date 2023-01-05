@@ -9,10 +9,10 @@ from core.classAsProcRunner import classAsProcRunner
 conf: configparser.ConfigParser = configparser.ConfigParser()
 conf.read("conf/conf.ini")
 
-# redProxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
-redProxy: redisProxy = redisProxy(conf)
+redProxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
+# redProxy: redisProxy = redisProxy(conf)
 
-proxy: serialReader = serialReader(conf, redProxy)
-runner: classAsProcRunner = classAsProcRunner("serPzmRedPrxy", proxy, "run")
+proxy: serialReader = serialReader("pzemSerRedProxy", conf, redProxy)
+runner: classAsProcRunner = classAsProcRunner("pzemSerRedRunner", proxy, "pzemSerRedProxy", "run")
 runner.init()
 runner.run_main_loop()
