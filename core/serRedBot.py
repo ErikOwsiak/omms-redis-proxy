@@ -26,7 +26,7 @@ class serRedBot(th.Thread):
       _dict = {"boot_dts_utc": sysUtils.dts_utc()
          , "dev": self.dev, "lanIP": sysUtils.lan_ip()
          , "hostname": sysUtils.HOST}
-      self.red_proxy.update_diag_tag(self.diag_tag, mapdct=_dict)
+      self.red_proxy.update_diag_tag(self.diag_tag, mapdct=_dict, restart=True)
       while True:
          self.__run_loop()
 
