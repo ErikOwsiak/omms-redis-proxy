@@ -18,7 +18,6 @@ class serRedBot(object):
       self.red_proxy: redisProxy = red
 
    def run(self):
-      setproctitle.setproctitle(self.__class__.__name__)
       while True:
          self.__run_loop()
 

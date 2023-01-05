@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import threading as th
+import time, configparser
+from core.redisProxy import redisProxy
+from core.serRedBot import serRedBot
+
+
+conf: configparser.ConfigParser = configparser.ConfigParser()
+conf.read("conf/ser_red_bot.ini")
+
+# redProxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
+redProxy: redisProxy = redisProxy(conf)
+
+# -- worker thread --
+serRedBotProxy: serRedBot = serRedBot(conf, redProxy)
+serRedBotProxyTh: th.Thread = th.Thread(target=serRedBotProxy.run, args=())
+serRedBotProxyTh.start()
+
+# -- block on main file --
+while True:
+   time.sleep(8.0)
+   print("main_loop")
