@@ -1,5 +1,6 @@
 
 import datetime
+import socket
 import os, time, re
 import serial, typing as t
 from serial.tools import list_ports as ser_tools
@@ -15,11 +16,23 @@ class sysUtils(object):
 
    GEOLOC = ""
    BUILDING = ""
-   HOST = ""
+   with open("/etc/hostname") as f:
+      HOST = f.read().strip()
 
    def __init__(self):
       self.ports: t.List[serial.Serial] = []
       self.found: {} = {}
+
+   @staticmethod
+   def lan_ip():
+      try:
+         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+         s.connect(("8.8.8.8", 80))
+         lanip = s.getsockname()[0]
+         s.close()
+         return lanip
+      except Exception as e:
+         print(e)
 
    @staticmethod
    def dts_utc():

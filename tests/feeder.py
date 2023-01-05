@@ -4,7 +4,7 @@ import time
 import serial
 
 
-port = "/dev/pts/10"
+port = "/dev/pts/11"
 
 
 def main():

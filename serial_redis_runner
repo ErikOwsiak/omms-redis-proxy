@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import setproctitle
-import threading as th
 import time, configparser
 from core.redisProxy import redisProxy
 from core.serRedBot import serRedBot
 from core.debug import debug
+from core.utils import sysUtils as utils
 
 
 conf: configparser.ConfigParser = configparser.ConfigParser()
@@ -13,23 +13,29 @@ conf.read("conf/ser_red_bot.ini")
 
 
 IS_DEBUG: bool = debug.is_dev_box()
-
-
 if IS_DEBUG:
-   redProxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
+   red_proxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
 else:
-   redProxy: redisProxy = redisProxy(conf)
+   red_proxy: redisProxy = redisProxy(conf)
+
+# -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 # -- worker thread --
-serRedBotProxy: serRedBot = serRedBot(conf, redProxy)
-serRedBotProxyTh: th.Thread = th.Thread(target=serRedBotProxy.run, args=())
+serRedBotProxyThread: serRedBot = serRedBot(conf, red_proxy)
 
 
 # -- block on main file --
 def main():
-   serRedBotProxyTh.start()
+   serRedBotProxyThread.start()
+   diag_tag: str = conf["RUNNER"]["DIAG_TAG"]
    while True:
-      time.sleep(8.0)
-      print("main_loop")
+      print("[ serial_redis_runner: main ]")
+      if serRedBotProxyThread.is_alive():
+         msg = "serRedBotProxyThread.is_alive TRUE"
+         print(msg)
+         dct: {} = {"dts_utc": utils.dts_utc(), "msg": msg}
+         red_proxy.update_diag_tag(diag_tag=diag_tag, mapdct=dct, restart=False)
+      # -- -- -- --
+      time.sleep(16.0)
 
 
 # -- -- start here -- --

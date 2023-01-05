@@ -63,6 +63,22 @@ class redisProxy(object):
       except Exception as e:
          logUtils.log_exp(e)
 
+   def update_diag_tag(self, diag_tag: str, key: str = None
+         , val: object = None, mapdct: {} = None, restart: bool = False):
+      try:
+         diag_db_idx: int = int(self.cp["REDIS"]["DB_IDX_DIAG"])
+         self.red.select(diag_db_idx)
+         if restart:
+            self.red.delete(diag_tag)
+         if mapdct is None:
+            rv = self.red.hset(diag_tag, mapping={key: val})
+         else:
+            rv = self.red.hset(diag_tag, mapping=mapdct)
+         print(f"rv: {rv}")
+      except Exception as e:
+         logUtils.log_exp(e)
+
+
    def __ping_host(self) -> bool:
       try:
          return self.red.ping()
@@ -74,9 +90,10 @@ class redisProxy(object):
 # -- -- test -- --
 if __name__ == "__main__":
     _cp: cp.ConfigParser = cp.ConfigParser()
-    _cp.read("../conf/conf.ini")
+    _cp.read("../conf/ser_red_bot.ini")
     rp: redisProxy = redisProxy(_cp, CONN_SEC="DEV_REDIS_CONN")
     rp.pub_diag_debug("hello")
     rp.pub_read("xxxxxxxxxxxxxxxxxxxxxx")
     rp.save_read("xxxx", "asdfasdfasdfasdfasfdasfdasfdf")
     rp.save_heartbeat("xxxxxx", "asdfasdfasfasfasfassafasfasfasfasdf")
+    rp.update_diag_tag("diag_tag", "start", "blablab")
