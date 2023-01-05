@@ -7,15 +7,15 @@ from core.redisProxy import redisProxy
 from core.logutils import logUtils
 
 
-class serialReader(object):
+class serRedBot(object):
 
    def __init__(self, _cp: cp.ConfigParser, red: redisProxy):
       self.cp = _cp
       self.dev: str = str(self.cp["SERIAL"]["DEV"])
       self.baudrate: int = int(self.cp["SERIAL"]["BAUDRATE"])
+      self.channel = str(self.cp["SYSPATH"]["CHANNEL"])
       self.ser: serial.Serial = serial.Serial(port=self.dev, baudrate=self.baudrate)
       self.red_proxy: redisProxy = red
-      self.channel = str(self.cp["SYSPATH"]["CHANNEL"])
 
    def run(self):
       setproctitle.setproctitle(self.__class__.__name__)

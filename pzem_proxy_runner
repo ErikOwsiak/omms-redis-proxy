@@ -2,7 +2,7 @@
 
 import configparser
 from core.redisProxy import redisProxy
-from core.serialReader import serialReader
+from core.serRedBot import serRedBot
 from core.classAsProcRunner import classAsProcRunner
 
 
@@ -12,7 +12,8 @@ conf.read("conf/conf.ini")
 redProxy: redisProxy = redisProxy(conf, "DEV_REDIS_CONN")
 # redProxy: redisProxy = redisProxy(conf)
 
-proxy: serialReader = serialReader(conf, redProxy)
-runner: classAsProcRunner = classAsProcRunner("pzemSerRedRun", proxy, "run")
+proxy: serRedBot = serRedBot(conf, redProxy)
+pn = f"{proxy.__class__.__name__}Runr"
+runner: classAsProcRunner = classAsProcRunner(pn, proxy, "run")
 runner.init()
 runner.run_main_loop()
