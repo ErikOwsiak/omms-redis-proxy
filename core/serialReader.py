@@ -36,7 +36,6 @@ class serialReader(object):
 
    def __run_loop(self):
       try:
-         # hr1secs = 3600
          # -- -- -- -- -- -- -- -- -- -- -- --
          buff = None
          if self.ser.inWaiting():

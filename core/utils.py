@@ -24,8 +24,8 @@ class sysUtils(object):
    @staticmethod
    def dts_utc():
       d = datetime.datetime.utcnow()
-      return f"{d.year}{d.month:02d}{d.day:02d}T" \
-         f"{d.hour:02d}{d.minute:02d}{d.second:02d}"
+      return f"{d.year}-{d.month:02d}-{d.day:02d}T" \
+         f"{d.hour:02d}:{d.minute:02d}:{d.second:02d}"
 
    @staticmethod
    def syspath(channel: str, endpoint: str):
